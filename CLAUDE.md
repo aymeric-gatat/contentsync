@@ -6,7 +6,7 @@ SaaS : l'utilisateur rédige un **Post Maître**, Claude l'adapte pour chaque ca
 on planifie dans un calendrier drag & drop, un worker BullMQ publie à l'heure.
 
 ## Stack
-- Next.js 16 (App Router, **Cache Components activé**, TypeScript strict) · Tailwind v4 · shadcn/ui (style base-nova, Base UI)
+- Next.js 16 (App Router, **Cache Components activé**, TypeScript strict) · Tailwind v4 · daisyUI 5 (thèmes `corporate` / `business` en sombre)
 - PostgreSQL + Prisma 7 (adaptateur `@prisma/adapter-pg`, client généré dans `src/generated/prisma`, non versionné)
 - Auth.js v5 (Google, connexion uniquement, sessions JWT)
 - BullMQ + Redis (worker = process Node séparé) — étape 3
@@ -52,7 +52,9 @@ Avant de déclarer une tâche terminée : `npm run typecheck && npm run lint && 
 - Dates stockées en UTC, affichées dans le fuseau de l'utilisateur.
 - Ne jamais logger de jetons, credentials, clés API.
 - Tests colocalisés (`foo.test.ts`) pour la logique : planification, parsing de sortie IA, connecteurs (HTTP mocké).
-- Composants shadcn : `npx shadcn@latest add <composant>` (générés dans `src/components/ui`, ne pas réécrire à la main).
+- UI : classes daisyUI (`btn`, `card`, `input`, `badge`, `alert`…) sur des éléments HTML natifs, utilitaires Tailwind pour la mise en page.
+  Couleurs via les tokens du thème (`primary`, `base-100`, `base-content/70`, `error`…), jamais de couleurs en dur.
+  Pas de bibliothèque de composants en plus (pas de shadcn) : thème et couleurs se configurent dans `src/app/globals.css`.
 
 ## Règles d'architecture
 
@@ -97,7 +99,7 @@ interface SocialConnector {
 - Aucun texte de prompt en dur hors de ce dossier.
 
 ## Roadmap MVP
-1. ✅ Socle : Next.js, shadcn, Prisma + migration initiale, Auth.js Google, dashboard protégé.
+1. ✅ Socle : Next.js, daisyUI, Prisma + migration initiale, Auth.js Google, dashboard protégé.
 2. ✅ Éditeur IA : CRUD MasterPost, `lib/ai/adapt.ts` + `adapt-post.v1`, composer avec variantes éditables (Posts `DRAFT`).
 3. Queue & worker : `lib/queue.ts`, `src/workers/`, `server/schedule.ts`, connecteur `webhook` de bout en bout.
 4. Calendrier : FullCalendar, `eventDrop` → replanification, couleur par statut, rollback visuel si échec.
