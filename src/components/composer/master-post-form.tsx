@@ -2,11 +2,6 @@
 
 import { startTransition, useActionState } from "react";
 import type { Platform } from "@/generated/prisma/enums";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { PLATFORMS } from "@/lib/platforms";
 import { saveMasterPost } from "@/server/posts";
 
@@ -20,7 +15,7 @@ export function MasterPostForm({ masterPost, platforms }: Props) {
 
   return (
     <form
-      className="flex flex-col gap-4"
+      className="card bg-base-100 shadow-sm"
       // Appel manuel : un <form action> réinitialiserait les champs, et le texte saisi serait perdu en cas d'erreur.
       onSubmit={(e) => {
         e.preventDefault();
@@ -28,32 +23,56 @@ export function MasterPostForm({ masterPost, platforms }: Props) {
         startTransition(() => action(formData));
       }}
     >
-      {state.id && <input type="hidden" name="id" value={state.id} />}
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="title">Titre (interne)</Label>
-        <Input id="title" name="title" defaultValue={masterPost?.title ?? ""} maxLength={200} />
+      <div className="card-body gap-2">
+        {state.id && <input type="hidden" name="id" value={state.id} />}
+        <div className="fieldset">
+          <label htmlFor="title" className="fieldset-legend">
+            Titre (interne)
+          </label>
+          <input id="title" name="title" className="input w-full" defaultValue={masterPost?.title ?? ""} maxLength={200} />
+        </div>
+        <div className="fieldset">
+          <label htmlFor="content" className="fieldset-legend">
+            Post Maître
+          </label>
+          <textarea
+            id="content"
+            name="content"
+            className="textarea w-full"
+            defaultValue={masterPost?.content}
+            rows={10}
+            required
+          />
+        </div>
+        <fieldset className="fieldset">
+          <legend className="fieldset-legend">Plateformes</legend>
+          <div className="flex flex-wrap gap-6">
+            {(Object.keys(PLATFORMS) as Platform[]).map((p) => (
+              <label key={p} className="label cursor-pointer gap-2 text-base-content">
+                <input
+                  type="checkbox"
+                  name="platforms"
+                  value={p}
+                  className="checkbox checkbox-primary checkbox-sm"
+                  defaultChecked={platforms.includes(p)}
+                />
+                {PLATFORMS[p].label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        {state.error && (
+          <div role="alert" className="alert alert-error alert-soft">
+            <span>{state.error}</span>
+          </div>
+        )}
+        <div className="card-actions mt-2">
+          <button type="submit" className="btn btn-primary" disabled={pending}>
+            {pending && <span className="loading loading-spinner loading-sm" />}
+            {pending ? "Génération en cours…" : "Enregistrer et générer les variantes"}
+          </button>
+        </div>
       </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="content">Post Maître</Label>
-        <Textarea id="content" name="content" defaultValue={masterPost?.content} rows={10} required />
-      </div>
-      <fieldset className="flex flex-wrap gap-4">
-        <legend className="mb-2 text-sm font-medium">Plateformes</legend>
-        {(Object.keys(PLATFORMS) as Platform[]).map((p) => (
-          <Label key={p} className="flex items-center gap-2 font-normal">
-            <Checkbox name="platforms" value={p} defaultChecked={platforms.includes(p)} />
-            {PLATFORMS[p].label}
-          </Label>
-        ))}
-      </fieldset>
-      {state.error && (
-        <p role="alert" className="text-sm text-destructive">
-          {state.error}
-        </p>
-      )}
-      <Button type="submit" disabled={pending} className="self-start">
-        {pending ? "Génération en cours…" : "Enregistrer et générer les variantes"}
-      </Button>
     </form>
   );
 }
