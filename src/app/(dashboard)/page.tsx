@@ -12,12 +12,19 @@ export default function HomePage() {
 }
 
 async function Dashboard() {
-  const user = await requireUser();
-  const masterPosts = await db.masterPost.findMany({
-    where: { userId: user.id },
-    orderBy: { updatedAt: "desc" },
-    select: { id: true, title: true, content: true, _count: { select: { posts: true } } },
+  const { id } = await requireUser();
+  const user = await db.user.findUniqueOrThrow({
+    where: { id },
+    select: {
+      name: true,
+      email: true,
+      masterPosts: {
+        orderBy: { updatedAt: "desc" },
+        select: { id: true, title: true, content: true, _count: { select: { posts: true } } },
+      },
+    },
   });
+  const { masterPosts } = user;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
