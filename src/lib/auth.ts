@@ -28,5 +28,6 @@ export async function requireUser() {
   await connection();
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  return { id: session.user.id, name: session.user.name, email: session.user.email };
+  // Seulement l'id : nom et e-mail du jeton sont figés à la connexion, les lire en base (modifiables dans Paramètres).
+  return { id: session.user.id };
 }

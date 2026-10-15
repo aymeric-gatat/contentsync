@@ -9,6 +9,7 @@ ContentSync est un SaaS pour les équipes marketing : vous rédigez un **Post Ma
 | Connexion Google | ✅ Disponible |
 | Éditeur de Post Maître + génération IA des variantes | ✅ Disponible |
 | Édition des variantes avec compteur de caractères par réseau | ✅ Disponible |
+| Paramètres du compte : profil et clé API Anthropic personnelle (chiffrée) | ✅ Disponible |
 | File d'attente et publication planifiée (BullMQ + Redis) | 🚧 Étape 3 |
 | Calendrier drag & drop | 🚧 Étape 4 |
 | Connexion des comptes LinkedIn / X et publication réelle | 🚧 Étape 5 |
@@ -96,7 +97,9 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
 - le premier résultat dans `AUTH_SECRET` (signature des sessions) ;
-- le second dans `ENCRYPTION_KEY` (chiffrement des jetons des réseaux sociaux).
+- le second dans `ENCRYPTION_KEY` (chiffrement des clés API des utilisateurs et des jetons des réseaux sociaux).
+
+> ⚠️ Ne changez plus `ENCRYPTION_KEY` une fois l'application utilisée : les clés déjà enregistrées deviendraient illisibles et chaque utilisateur devrait ressaisir la sienne.
 
 ### 4. Configurer la connexion Google
 
@@ -200,6 +203,18 @@ Chaque variante est éditable dans sa carte :
 
 Modifiez le Post Maître puis cliquez à nouveau sur **Enregistrer et générer les variantes**. Seuls les **brouillons** des réseaux cochés sont remplacés : une variante planifiée ou publiée n'est jamais écrasée.
 
+### Gérer son compte
+
+Cliquez sur **Paramètres** dans la barre de navigation.
+
+- **Profil** : modifiez le nom affiché. L'e-mail est celui de votre compte Google et n'est pas modifiable.
+- **Clé API Anthropic** : chaque utilisateur peut enregistrer **sa propre clé**, utilisée pour ses générations à la place de celle du serveur.
+  1. collez une clé `sk-ant-...` puis cliquez sur **Vérifier et enregistrer** ;
+  2. la clé est vérifiée auprès d'Anthropic avant d'être enregistrée (une clé refusée n'est jamais stockée) ;
+  3. elle est stockée **chiffrée** (AES-256-GCM) et n'est jamais renvoyée au navigateur : seuls ses 4 derniers caractères sont affichés ;
+  4. **Supprimer ma clé** revient à la clé du serveur (`ANTHROPIC_API_KEY`), si elle est configurée.
+- **Session** : bouton **Se déconnecter**.
+
 ### Personnaliser le comportement de l'IA
 
 | Je veux… | Où agir |
@@ -253,9 +268,9 @@ Toutes les variables sont validées au démarrage dans [`src/lib/env.ts`](src/li
 | `AUTH_GOOGLE_ID` | oui | ID client OAuth Google |
 | `AUTH_GOOGLE_SECRET` | oui | code secret OAuth Google |
 | `AUTH_URL` | en production | URL publique de l'application, par exemple `https://app.exemple.com` |
-| `ANTHROPIC_API_KEY` | pour l'IA | clé API Anthropic |
+| `ANTHROPIC_API_KEY` | non | clé API Anthropic du serveur, utilisée pour les utilisateurs sans clé personnelle |
 | `ANTHROPIC_MODEL` | non | modèle Claude (défaut : `claude-opus-5-5`) |
-| `ENCRYPTION_KEY` | étape 5 | clé de chiffrement des jetons des réseaux sociaux (32 octets en base64) |
+| `ENCRYPTION_KEY` | oui | clé de chiffrement des clés API utilisateurs et des jetons des réseaux (32 octets en base64, ne plus la changer ensuite) |
 
 ---
 
@@ -269,16 +284,19 @@ contentsync/
 ├── src/
 │   ├── app/
 │   │   ├── (auth)/login/      # page de connexion
-│   │   ├── (dashboard)/       # pages protégées : accueil, éditeur
+│   │   ├── (dashboard)/       # pages protégées : accueil, éditeur, paramètres
 │   │   └── api/auth/          # routes Auth.js
-│   ├── components/composer/   # formulaire du Post Maître, cartes de variantes
+│   ├── components/
+│   │   ├── composer/          # formulaire du Post Maître, cartes de variantes
+│   │   └── account/           # formulaires de profil et de clé API
 │   ├── lib/
 │   │   ├── ai/                # appel à Claude et prompts versionnés
 │   │   ├── auth.ts            # configuration Auth.js + requireUser()
+│   │   ├── crypto.ts          # chiffrement AES-256-GCM des secrets stockés
 │   │   ├── db.ts              # client Prisma
 │   │   ├── env.ts             # validation des variables d'environnement
 │   │   └── platforms.ts       # réseaux et limites de caractères
-│   ├── server/                # Server Actions (création, édition, suppression)
+│   ├── server/                # Server Actions (posts, compte)
 │   └── generated/prisma/      # client Prisma généré (non versionné)
 ├── docker-compose.yml         # PostgreSQL + Redis
 ├── CLAUDE.md                  # conventions et règles d'architecture détaillées
@@ -311,7 +329,10 @@ Les règles d'architecture (isolation des connecteurs, workers idempotents, prom
 | `Cannot find module '@/generated/prisma/client'` | client Prisma non généré | `npx prisma generate` |
 | Google : `redirect_uri_mismatch` | URI de redirection incorrecte | ajoutez exactement `http://localhost:3000/api/auth/callback/google` dans la console Google |
 | Google : « Accès bloqué » / `access_denied` | adresse absente des utilisateurs test | ajoutez-la dans l'écran de consentement OAuth |
-| « Clé API Anthropic invalide ou manquante » | `ANTHROPIC_API_KEY` absente ou erronée | vérifiez la clé dans `.env` et redémarrez `npm run dev` |
+| « Clé API Anthropic invalide ou manquante » | aucune clé valide (ni personnelle, ni serveur) | ajoutez votre clé dans **Paramètres**, ou `ANTHROPIC_API_KEY` dans `.env` puis redémarrez `npm run dev` |
+| « Clé refusée par Anthropic » dans Paramètres | clé révoquée, mal copiée ou d'un autre compte | recopiez la clé depuis platform.claude.com → API Keys |
+| « Votre clé API est illisible » | `ENCRYPTION_KEY` a changé depuis l'enregistrement | enregistrez à nouveau votre clé dans **Paramètres** |
+| `ENCRYPTION_KEY doit faire 32 octets` au démarrage | valeur absente ou mal générée | régénérez-la avec la commande de l'[étape 3](#3-générer-les-secrets-locaux) |
 | « Le service IA est indisponible ou mal configuré » | pas de crédit, panne ou configuration | vérifiez vos crédits sur platform.claude.com ; le détail s'affiche dans le terminal de `npm run dev` |
 | `UntrustedHost` avec `npm start` | `AUTH_URL` non définie en production | définissez `AUTH_URL` (ou `AUTH_TRUST_HOST=true` derrière un proxy de confiance) |
 | Les modifications de `.env` ne sont pas prises en compte | variables lues au démarrage uniquement | arrêtez puis relancez `npm run dev` |

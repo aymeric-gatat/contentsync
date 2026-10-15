@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { signOut } from "@/lib/auth";
 
 // Pas de contrôle d'accès ici : les layouts ne se re-rendent pas à la navigation. Chaque page appelle requireUser().
 export default function DashboardLayout({ children }: LayoutProps<"/">) {
@@ -15,16 +14,9 @@ export default function DashboardLayout({ children }: LayoutProps<"/">) {
           <Link href="/compose" className="btn btn-primary btn-sm">
             Nouveau post
           </Link>
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: "/login" });
-            }}
-          >
-            <button type="submit" className="btn btn-ghost btn-sm">
-              Déconnexion
-            </button>
-          </form>
+          <Link href="/settings" className="btn btn-ghost btn-sm">
+            Paramètres
+          </Link>
         </nav>
       </header>
       <main className="flex-1 p-4 sm:p-6">{children}</main>
