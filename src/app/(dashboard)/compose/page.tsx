@@ -5,8 +5,8 @@ import { requireUser } from "@/lib/auth";
 export default function NewPostPage() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      <h1 className="text-xl font-semibold">Nouveau post</h1>
-      <Suspense fallback={<p className="text-muted-foreground">Chargement…</p>}>
+      <h1 className="text-2xl font-bold">Nouveau post</h1>
+      <Suspense fallback={<span className="loading loading-spinner" aria-label="Chargement" />}>
         <NewPostForm />
       </Suspense>
     </div>

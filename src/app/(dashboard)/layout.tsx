@@ -4,12 +4,22 @@ import Link from "next/link";
 export default function DashboardLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex flex-1 flex-col">
-      <header className="flex items-center gap-6 border-b px-6 py-3">
-        <Link href="/" className="font-semibold">
-          ContentSync
-        </Link>
+      <header className="navbar bg-base-100 px-2 shadow-sm sm:px-4">
+        <div className="navbar-start w-auto flex-1">
+          <Link href="/" className="btn btn-ghost px-2 text-lg font-bold">
+            ContentSync
+          </Link>
+        </div>
+        <nav className="navbar-end w-auto gap-1">
+          <Link href="/compose" className="btn btn-primary btn-sm">
+            Nouveau post
+          </Link>
+          <Link href="/settings" className="btn btn-ghost btn-sm">
+            Paramètres
+          </Link>
+        </nav>
       </header>
-      <main className="flex-1 p-6">{children}</main>
+      <main className="flex-1 p-4 sm:p-6">{children}</main>
     </div>
   );
 }

@@ -35,6 +35,8 @@ model User {
   emailVerified DateTime?
   name          String?
   image         String?
+  /// Clé API Anthropic personnelle, chiffrée (src/lib/crypto.ts) ; null = clé du serveur
+  anthropicApiKey String?    @db.Text
   createdAt     DateTime     @default(now())
   accounts      Account[]
   channels      Channel[]

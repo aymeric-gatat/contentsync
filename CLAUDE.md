@@ -6,7 +6,7 @@ SaaS : l'utilisateur rédige un **Post Maître**, Claude l'adapte pour chaque ca
 on planifie dans un calendrier drag & drop, un worker BullMQ publie à l'heure.
 
 ## Stack
-- Next.js 16 (App Router, **Cache Components activé**, TypeScript strict) · Tailwind v4 · shadcn/ui (style base-nova, Base UI)
+- Next.js 16 (App Router, **Cache Components activé**, TypeScript strict) · Tailwind v4 · daisyUI 5 (thèmes `corporate` / `business` en sombre)
 - PostgreSQL + Prisma 7 (adaptateur `@prisma/adapter-pg`, client généré dans `src/generated/prisma`, non versionné)
 - Auth.js v5 (Google, connexion uniquement, sessions JWT)
 - BullMQ + Redis (worker = process Node séparé) — étape 3
@@ -43,6 +43,7 @@ Avant de déclarer une tâche terminée : `npm run typecheck && npm run lint && 
   - Chaque page protégée appelle `requireUser()` (`@/lib/auth`) **dans un composant sous `<Suspense>`**
     (Cache Components : lire la session hors Suspense = erreur de build). Pas de contrôle d'accès dans les layouts.
     `requireUser()` commence par `await connection()` : ne pas l'enlever (Auth.js appelle crypto avant les cookies).
+    Il ne renvoie que `{ id }` : nom et e-mail du jeton sont figés à la connexion, les lire en base.
   - Chaque Server Action : 1) valide l'entrée avec Zod, 2) `requireUser()`, 3) **filtre par `userId`** toute requête Prisma.
 - Mutations via Server Actions dans `src/server/`.
 - Formulaires client : `useActionState` + appel manuel dans `onSubmit` (`startTransition(() => action(formData))`),
@@ -51,8 +52,14 @@ Avant de déclarer une tâche terminée : `npm run typecheck && npm run lint && 
   Les connecteurs lèvent `ConnectorError { retryable: boolean }` ; le worker s'en sert pour retry vs échec.
 - Dates stockées en UTC, affichées dans le fuseau de l'utilisateur.
 - Ne jamais logger de jetons, credentials, clés API.
+- **Secrets stockés en base** (clé API utilisateur, jetons OAuth) : toujours chiffrés via `encrypt` / `decrypt` de
+  `src/lib/crypto.ts` avec `env.ENCRYPTION_KEY`. Ne jamais renvoyer un secret déchiffré au client (au plus ses 4 derniers caractères).
+- Clé Anthropic : celle de l'utilisateur (`User.anthropicApiKey`) si présente, sinon `ANTHROPIC_API_KEY` du serveur.
+  Une clé est vérifiée (`verifyApiKey`) avant d'être enregistrée.
 - Tests colocalisés (`foo.test.ts`) pour la logique : planification, parsing de sortie IA, connecteurs (HTTP mocké).
-- Composants shadcn : `npx shadcn@latest add <composant>` (générés dans `src/components/ui`, ne pas réécrire à la main).
+- UI : classes daisyUI (`btn`, `card`, `input`, `badge`, `alert`…) sur des éléments HTML natifs, utilitaires Tailwind pour la mise en page.
+  Couleurs via les tokens du thème (`primary`, `base-100`, `base-content/70`, `error`…), jamais de couleurs en dur.
+  Pas de bibliothèque de composants en plus (pas de shadcn) : thème et couleurs se configurent dans `src/app/globals.css`.
 
 ## Règles d'architecture
 
@@ -97,8 +104,9 @@ interface SocialConnector {
 - Aucun texte de prompt en dur hors de ce dossier.
 
 ## Roadmap MVP
-1. ✅ Socle : Next.js, shadcn, Prisma + migration initiale, Auth.js Google, dashboard protégé.
+1. ✅ Socle : Next.js, daisyUI, Prisma + migration initiale, Auth.js Google, dashboard protégé.
 2. ✅ Éditeur IA : CRUD MasterPost, `lib/ai/adapt.ts` + `adapt-post.v1`, composer avec variantes éditables (Posts `DRAFT`).
+   ✅ Paramètres du compte (`/settings`) : nom, clé API Anthropic personnelle chiffrée (`lib/crypto.ts`).
 3. Queue & worker : `lib/queue.ts`, `src/workers/`, `server/schedule.ts`, connecteur `webhook` de bout en bout.
 4. Calendrier : FullCalendar, `eventDrop` → replanification, couleur par statut, rollback visuel si échec.
-5. Connecteurs LinkedIn & X : OAuth maison + `lib/crypto.ts`, page Channels, refresh des jetons, HMAC webhook.
+5. Connecteurs LinkedIn & X : OAuth maison (jetons chiffrés via `lib/crypto.ts`), page Channels, refresh des jetons, HMAC webhook.

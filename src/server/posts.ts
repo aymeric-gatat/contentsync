@@ -7,7 +7,9 @@ import { z } from "zod";
 import { Platform } from "@/generated/prisma/enums";
 import { adaptMasterPost } from "@/lib/ai/adapt";
 import { requireUser } from "@/lib/auth";
+import { decrypt } from "@/lib/crypto";
 import { db } from "@/lib/db";
+import { env } from "@/lib/env";
 import { isOverLimit, PLATFORMS } from "@/lib/platforms";
 
 export type FormState = { error?: string; id?: string };
@@ -40,7 +42,15 @@ export async function saveMasterPost(_prev: FormState, formData: FormData): Prom
     masterId = (await db.masterPost.create({ data: { userId: user.id, title, content } })).id;
   }
 
-  const result = await adaptMasterPost(content, platforms);
+  const { anthropicApiKey } = await db.user.findUniqueOrThrow({ where: { id: user.id }, select: { anthropicApiKey: true } });
+  let apiKey: string | undefined;
+  try {
+    apiKey = anthropicApiKey ? decrypt(anthropicApiKey, env.ENCRYPTION_KEY) : undefined;
+  } catch {
+    return { error: "Votre clé API est illisible (ENCRYPTION_KEY a changé ?) : enregistrez-la à nouveau dans Paramètres.", id: masterId };
+  }
+
+  const result = await adaptMasterPost(content, platforms, apiKey);
   if (!result.ok) return { error: result.error, id: masterId };
 
   // Seuls les brouillons sont remplacés : une variante planifiée ou publiée n'est jamais écrasée.

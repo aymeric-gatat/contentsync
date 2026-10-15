@@ -11,5 +11,10 @@ export const env = z
     // Optionnelle : sans clé, le SDK utilise le profil `ant auth login`. "" (copié de .env.example) = absente.
     ANTHROPIC_API_KEY: z.string().optional().transform((v) => v || undefined),
     ANTHROPIC_MODEL: z.string().default("claude-opus-5-5"),
+    // Ne jamais changer une fois des données chiffrées : elles deviendraient illisibles.
+    ENCRYPTION_KEY: z
+      .base64()
+      .transform((v) => Buffer.from(v, "base64"))
+      .refine((b) => b.length === 32, "ENCRYPTION_KEY doit faire 32 octets encodés en base64"),
   })
   .parse(process.env);
