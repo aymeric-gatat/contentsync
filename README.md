@@ -227,7 +227,7 @@ Dans [`src/app/globals.css`](src/app/globals.css), remplacez les noms de thèmes
 
 | Commande | Rôle |
 | --- | --- |
-| `npm run dev` | serveur de développement sur http://localhost:3000 |
+| `npm run dev` | serveur de développement sur <http://localhost:3000> |
 | `npm run build` | build de production |
 | `npm start` | lance le build de production |
 | `npm run lint` | analyse ESLint |
@@ -347,5 +347,5 @@ npm start
 npm run typecheck && npm run lint && npm test
 ```
 
-4. Ne commitez jamais `.env` ni de secret, y compris dans `.env.example`.
-5. Ouvrez une pull request vers `main`.
+1. Ne commitez jamais `.env` ni de secret, y compris dans `.env.example`.
+2. Ouvrez une pull request vers `main`.
